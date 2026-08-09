@@ -1,0 +1,21 @@
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# Streamlit Local Configuration
+.streamlit/secrets.toml
+
+# Temp files and exports
+exports/
+*.pdf
+*.docx
+*.log
