@@ -25,10 +25,7 @@ The pipeline executes through a coordinated workflow:
 5. **Critic Agent:** Conducts a quality assessment to evaluate factual depth and structure.
 6. **Export Engine:** Converts the synthesized Markdown into styled PDF and Word files using custom ReportLab and python-docx table and layout parsers.
 
-
-<img width="923" height="791" alt="image" src="https://github.com/user-attachments/assets/cfda7b67-a4af-44de-a353-cedc082c174e" />
-
-
+<img width="3246" height="1191" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/e9206657-a020-4408-bda0-038ebf0c3300" />
 
 ---
 
