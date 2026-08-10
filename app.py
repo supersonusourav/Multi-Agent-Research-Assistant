@@ -192,7 +192,7 @@ if submit_btn:
         st.warning("Please enter a research topic or query.")
         st.stop()
 
-    with st.spinner("Executing Multi-Agent Graph Workflow..."):
+    with st.spinner("Executing Multi-Agent Graph Workflow (this usually takes 90 seconds)..."):
         state = run_workflow(query)
         st.session_state["state"] = state
         st.session_state["query"] = query
