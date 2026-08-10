@@ -45,7 +45,7 @@ def parse_markdown_table_rows(lines: list[str]) -> tuple[list[list[str]], list[s
         if not line.startswith("|") or not line.endswith("|"):
             break
         # Skip Markdown separator lines like |---|---|
-        if re.match(r"^\|[\s:-]+(\+[\s:-]+)*\|$", line) or "---" in line:
+        if re.match(r"^\|[\s:-]+(\+[\s:-]+)*\|$", line) or re.match(r"^\|(\s*:?-+:?\s*\|)+$", line):
             idx += 1
             continue
 
@@ -54,6 +54,18 @@ def parse_markdown_table_rows(lines: list[str]) -> tuple[list[list[str]], list[s
         idx += 1
 
     return table_data, lines[idx:]
+
+
+def process_docx_paragraph(paragraph, text: str):
+    """Parses text containing markdown formatting (**bold**) into paragraph runs."""
+    parts = re.split(r"(\*\*.*?\*\*)", text)
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith("**") and part.endswith("**"):
+            paragraph.add_run(part[2:-2]).bold = True
+        else:
+            paragraph.add_run(part)
 
 
 def generate_docx(report_text: str, search_query: str = "Research_Report") -> tuple[bytes, str]:
@@ -96,29 +108,32 @@ def generate_docx(report_text: str, search_query: str = "Research_Report") -> tu
                     for col_idx, cell_value in enumerate(row):
                         if col_idx < col_count:
                             cell = table_row.cells[col_idx]
-                            clean_val = cell_value.replace("**", "").replace("<b>", "").replace("</b>", "")
-                            cell.text = clean_val
+                            cell.text = ""  # Clear existing default run
+                            p = cell.paragraphs[0]
+                            
+                            # Clean up inline tags and render formatted bold text inside cell
+                            clean_val = cell_value.replace("<b>", "").replace("</b>", "")
+                            process_docx_paragraph(p, clean_val)
 
-                            # Format Header Row
+                            # Format Header Row Appearance
                             if row_idx == 0:
                                 set_cell_background(cell, "FF6B00")
-                                for p in cell.paragraphs:
-                                    for r in p.runs:
-                                        r.font.bold = True
-                                        r.font.color.rgb = RGBColor(255, 255, 255)
+                                for run in p.runs:
+                                    run.font.bold = True
+                                    run.font.color.rgb = RGBColor(255, 255, 255)
 
                 doc.add_paragraph()  # Spacing after table
             continue
 
-        # Headings
+        # Headings (Strip '#' and formatting asterisks)
         if line.startswith("# "):
-            doc.add_heading(line.replace("# ", "").replace("**", "").strip(), level=1)
+            doc.add_heading(re.sub(r"[\*#]", "", line).strip(), level=1)
         elif line.startswith("## "):
-            doc.add_heading(line.replace("## ", "").replace("**", "").strip(), level=2)
+            doc.add_heading(re.sub(r"[\*#]", "", line).strip(), level=2)
         elif line.startswith("### "):
-            doc.add_heading(line.replace("### ", "").replace("**", "").strip(), level=3)
+            doc.add_heading(re.sub(r"[\*#]", "", line).strip(), level=3)
         else:
-            # Bullet vs Paragraph
+            # Bullet vs Standard Paragraph
             is_bullet = line.startswith("- ") or line.startswith("* ") or line.startswith("• ")
             if is_bullet:
                 raw_text = re.sub(r"^[-*•]\s*", "", line)
@@ -127,29 +142,42 @@ def generate_docx(report_text: str, search_query: str = "Research_Report") -> tu
                 raw_text = line
                 p = doc.add_paragraph()
 
-            # Parse bold runs
-            parts = re.split(r"(\*\*.*?\*\*)", raw_text)
-            for part in parts:
-                if part.startswith("**") and part.endswith("**"):
-                    p.add_run(part[2:-2]).bold = True
-                else:
-                    p.add_run(part)
+            # Render inline bold runs properly
+            process_docx_paragraph(p, raw_text)
 
         i += 1
 
     file_name = f"{sanitize_filename(search_query)}.docx"
 
-    # Use Temporary Directory for Cloud Safe Execution
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = os.path.join(temp_dir, file_name)
-        doc.save(temp_path)
-        
-        buffer = io.BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
-        docx_bytes = buffer.getvalue()
+    # Save to buffer stream
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    docx_bytes = buffer.getvalue()
 
     return docx_bytes, file_name
+
+
+def format_pdf_markdown(text: str) -> str:
+    """Safely escapes HTML symbols and converts markdown bold (**) to ReportLab XML tags (<b>)."""
+    # 1. Temporarily replace bold markers
+    placeholders = []
+    def replace_bold(match):
+        placeholders.append(match.group(1))
+        return f"__BOLD_PH_{len(placeholders)-1}__"
+
+    text = re.sub(r"\*\*(.*?)\*\*", replace_bold, text)
+
+    # 2. Escape XML special characters
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    # 3. Restore bold tags safely for ReportLab Paragraph
+    for idx, ph in enumerate(placeholders):
+        # Escape any special characters inside the bold content itself
+        clean_ph = ph.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        text = text.replace(f"__BOLD_PH_{idx}__", f"<b>{clean_ph}</b>")
+
+    return text
 
 
 def generate_pdf(report_text: str, search_query: str = "Research_Report") -> tuple[bytes, str]:
@@ -193,7 +221,7 @@ def generate_pdf(report_text: str, search_query: str = "Research_Report") -> tup
                 for row_idx, row in enumerate(table_data):
                     formatted_row = []
                     for cell_value in row:
-                        clean_cell = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", cell_value)
+                        clean_cell = format_pdf_markdown(cell_value)
                         style = table_header_style if row_idx == 0 else table_cell_style
                         formatted_row.append(Paragraph(clean_cell, style))
                     formatted_table_data.append(formatted_row)
@@ -223,17 +251,18 @@ def generate_pdf(report_text: str, search_query: str = "Research_Report") -> tup
                 story.append(Spacer(1, 10))
             continue
 
-        # Escape raw HTML characters
-        formatted_line = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", line)
-        formatted_line = formatted_line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        formatted_line = formatted_line.replace("&lt;b&gt;", "<b>").replace("&lt;/b&gt;", "</b>")
+        # Escape raw HTML and process bold syntax safely
+        formatted_line = format_pdf_markdown(line)
 
         if line.startswith("# "):
-            story.append(Paragraph(re.sub(r"^#\s*", "", formatted_line), h1_style))
+            clean_h1 = re.sub(r"^#\s*", "", line).replace("**", "")
+            story.append(Paragraph(format_pdf_markdown(clean_h1), h1_style))
         elif line.startswith("## "):
-            story.append(Paragraph(re.sub(r"^##\s*", "", formatted_line), h2_style))
+            clean_h2 = re.sub(r"^##\s*", "", line).replace("**", "")
+            story.append(Paragraph(format_pdf_markdown(clean_h2), h2_style))
         elif line.startswith("### "):
-            story.append(Paragraph(re.sub(r"^###\s*", "", formatted_line), h3_style))
+            clean_h3 = re.sub(r"^###\s*", "", line).replace("**", "")
+            story.append(Paragraph(format_pdf_markdown(clean_h3), h3_style))
         elif line.startswith("- ") or line.startswith("* ") or line.startswith("• "):
             clean_bullet = re.sub(r"^[-*•]\s*", "", formatted_line)
             story.append(Paragraph(f"• {clean_bullet}", bullet_style))
