@@ -76,6 +76,14 @@ st.markdown(
         box-shadow: 0 6px 20px rgba(255, 81, 47, 0.45) !important;
     }
 
+    /* Link Buttons */
+    div.stLinkButton > a {
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        padding: 0.75rem 1.5rem !important;
+        transition: all 0.3s ease !important;
+    }
+
     /* Stat Card Component */
     .stat-card {
         background: var(--gradient-card);
@@ -168,9 +176,16 @@ query = st.text_input(
     label_visibility="collapsed",
 )
 
-col_btn, _ = st.columns([1, 2.5])
+# Action Row with Launch Button & GitHub Badge
+col_btn, col_gh, _ = st.columns([1.5, 1, 1.5])
 with col_btn:
     submit_btn = st.button("✨ Launch Research Workflow", use_container_width=True)
+with col_gh:
+    st.link_button(
+        "⭐ View GitHub Repo",
+        "https://github.com/supersonusourav/Multi-Agent-Research-Assistant",
+        use_container_width=True,
+    )
 
 if submit_btn:
     if not query.strip():
