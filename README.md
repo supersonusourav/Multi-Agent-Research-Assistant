@@ -20,10 +20,9 @@ The pipeline executes through a coordinated workflow:
 
 1. **Planner Agent:** Deconstructs the main query into targeted research sub-questions.
 2. **Researcher Agent:** Executes parallel live web retrievals for each sub-question using Tavily.
-3. **Evaluator Agent:** Validates source credibility, relevance, and citation mapping.
-4. **Writer Agent:** Synthesizes extracted findings into a structured academic research paper (Abstract, Introduction, Findings, Limitations, Conclusion).
-5. **Critic Agent:** Conducts a quality assessment to evaluate factual depth and structure.
-6. **Export Engine:** Converts the synthesized Markdown into styled PDF and Word files using custom ReportLab and python-docx table and layout parsers.
+3. **Writer Agent:** Synthesizes extracted findings into a structured academic research paper (Abstract, Introduction, Findings, Limitations, Conclusion).
+4. **Critic Agent:** Conducts a quality assessment to evaluate factual depth and structure.
+5. **Export Engine:** Converts the synthesized Markdown into styled PDF and Word files using custom ReportLab and python-docx table and layout parsers.
 
 <img width="3246" height="1191" alt="mermaid-diagram" src="https://github.com/user-attachments/assets/e9206657-a020-4408-bda0-038ebf0c3300" />
 
@@ -45,7 +44,6 @@ The pipeline executes through a coordinated workflow:
 ├── agents/
 │   ├── planner.py       # Query decomposition agent
 │   ├── researcher.py    # Search execution agent
-│   ├── evaluator.py     # Source validation agent
 │   ├── writer.py        # Report synthesis agent
 │   └── critic.py        # Quality review agent
 ├── tools/
