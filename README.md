@@ -1,3 +1,4 @@
+<img width="1387" height="907" alt="image" src="https://github.com/user-attachments/assets/9fa2d0b5-84e3-41fa-9a87-6b69d4f8cd72" />
 # 🔍 Multi-Agent Research Assistant
 
 An autonomous multi-agent research and report generation platform built with **Streamlit**, **LangChain**, and **Mistral AI**. The system orchestrates specialized agents to break down complex queries, retrieve live web search results, evaluate sources, synthesize structured reports, and export publication-ready **PDF** and **Word (.docx)** documents.
